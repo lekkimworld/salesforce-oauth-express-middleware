@@ -1,6 +1,5 @@
 const FormData = require('form-data')
 const fetch = require('node-fetch')
-const crypto = require('crypto')
 const oauthutils = require('./oauth-utils.js')
 
 module.exports = {
@@ -24,12 +23,13 @@ module.exports = {
         if (!options.redirectUri) throw Error('Missing redirectUri in options')
         if (!options.loginUrl) options.loginUrl = 'https://login.salesforce.com'
         if (!options.prompt) options.prompt = 'consent'
+        const prompt = options.prompt.replace(/ /g, '%20')
 
         return (req, res, next) => {
             // see if there is a user object in the sessio
             if (!options.callback(req)) {
                 // there is not - initiate authentication
-                return res.redirect(`${options.loginUrl}/services/oauth2/authorize?client_id=${options.clientId}&redirect_uri=${options.redirectUri}&response_type=code&prompt=${options.prompt}`)
+                return res.redirect(`${options.loginUrl}/services/oauth2/authorize?client_id=${options.clientId}&redirect_uri=${options.redirectUri}&response_type=code&prompt=${prompt}`)
             } else {
                 // yay
                 return next()
@@ -170,20 +170,10 @@ module.exports = {
                     return next(new Error('Unable to parse signed_request JSON', err))
                 }
                 
-                // split and get payload
-                const payloadParts = payload.signed_request.split('.')
-                const signaturePart = payloadParts[0]
-                const objPart = payloadParts[1]
+                // verify signature
+                let obj = oauthutils.verifySignedRequest(payload, options.clientSecret)
 
-                // verify payload signature
-                if (options.clientSecret) {
-                    // do the verification
-                    const ourSignature = Buffer.from(crypto.createHmac(options.algorithm, options.clientSecret).update(objPart).digest()).toString('base64')
-                    if (ourSignature !== signaturePart) throw Error('Signature is invalid')
-                }
-
-                // get object part and callback
-                const obj = JSON.parse(Buffer.from(objPart, 'base64').toString())
+                // callback
                 options.callback(req, res, obj)
 
                 // next middleware

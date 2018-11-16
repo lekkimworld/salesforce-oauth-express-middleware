@@ -1,6 +1,7 @@
 const nJwt = require('njwt')
 const njwk = require('node-jwk')
 const fetch = require('node-fetch')
+const crypto = require('crypto')
 
 /**
  * Method to verify the ID Token we received from Salesforce using the standard 
@@ -75,8 +76,35 @@ const fetchWellknownConfig = base_url => {
     })
 }
 
+/**
+ * Verify signed_request POST data from Salesforce Canvas app.
+ * 
+ * @param {String} signed_request Signed request - should be a string with two parts separated with .
+ * @param {String} clientSecret Client secret used to verify the signed request
+ * @param {String} algorithm Algorithm used to verify signed request (defaults to 'sha256')
+ */
+const verifySignedRequest = (signed_request, clientSecret, algorithm='sha256') => {
+    if (!signed_request) throw Error('Missing signed_request')
+    if (!clientSecret) throw Error('Missing client secret')
+
+    // split and get payload
+    const payloadParts = signed_request.split('.')
+    if (payloadParts.length !== 2) throw Error('Signed_request looks malformed - unable to find two parts separated by .')
+    const signaturePart = payloadParts[0]
+    const objPart = payloadParts[1]
+
+    // verify payload signature
+    const ourSignature = Buffer.from(crypto.createHmac(algorithm, clientSecret).update(objPart).digest()).toString('base64')
+    if (ourSignature !== signaturePart) throw Error('Signature is invalid')
+
+    // get object part and callback
+    const obj = JSON.parse(Buffer.from(objPart, 'base64').toString())
+    return obj
+}
+
 module.exports = {
     verifyIDToken,
     fetchIdentity,
-    fetchWellknownConfig
+    fetchWellknownConfig,
+    verifySignedRequest
 }
