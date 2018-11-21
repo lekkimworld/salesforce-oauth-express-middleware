@@ -1,4 +1,3 @@
-const FormData = require('form-data')
 const fetch = require('node-fetch')
 const oauthutils = require('./oauth-utils.js')
 
@@ -67,27 +66,25 @@ module.exports = {
             let didCallback = false
 
             // route for oauth callback
-            if (req.method !== 'GET' || req.originalUrl !== CALLBACK_PATH) {
+            if (req.method !== 'GET' || req.originalUrl !== options.path) {
                 return next()
             }
 
             // grab authorization code from query string
             const authcode = req.query.code
             if (!authcode) {
-                return next(new Error('Expected authorization code'))
+                return next(new Error('Expected authorization code in query string in "code" param'))
             }
 
             // exchange authcode
-            const formdata = new FormData()
-            formdata.append('client_id', options.clientId)
-            formdata.append('client_secret', options.clientSecret)
-            formdata.append('redirect_uri', options.redirectUri)
-            formdata.append('code', authcode)
-            formdata.append('grant_type', 'authorization_code')
             fetch(`${options.loginUrl}/services/oauth2/token`, {
                 method: 'POST',
-                body: formdata
+                headers: {
+                    'content-type': 'application/x-www-form-urlencoded'
+                },
+                body: `client_id=${options.clientId}&client_secret=${options.clientSecret}&redirect_uri=${options.redirectUri}&code=${authcode}&grant_type=authorization_code`
             }).then(response => {
+                if (response.status !== 200) throw Error('Non code-200 response from /services/oauth2/token')
                 return response.json()
             }).then(payload => {
                 // add the payload to the request
