@@ -2,6 +2,7 @@ const sinon = require('sinon')
 const {expect} = require('chai')
 const mw = require('../index.js')
 const nock = require('nock')
+const mockrequire = require('proxyquire')
 
 describe('test oauth callback', function() {
     it('should verify arguments', function() {
@@ -130,6 +131,289 @@ describe('test oauth callback', function() {
         }
         mw.oauthCallback({'clientId': 'foo', 'clientSecret': 'bar', 'redirectUri': 'baz', 'requestKey': 'foo', 'callback': callback})(req, undefined, (err) => {
             console.log(err)
+            done(err)
+        })
+    })
+
+    it('even though there is an id_token it should not be verified if asked not to', function(done) {
+        nock('https://login.salesforce.com')
+            .post('/services/oauth2/token')
+            .reply(200, {
+                'key': 'value',
+                'id_token': 'dummy'
+            })
+
+        let req = {
+            'method': 'GET',
+            'originalUrl': '/oauth/callback',
+            'query': {'code': 'authcode1234'}
+        }
+        let callback = () => {
+            expect(req.sfoauth.payload.id_token).to.be.equal('dummy')
+            done()
+        }
+        mw.oauthCallback({'verifyIDToken': false, 'clientId': 'foo', 'clientSecret': 'bar', 'redirectUri': 'baz', 'callback': callback})(req, undefined, (err) => {
+            console.log(err)
+            done(err)
+        })
+    })
+
+    it('should throw error if id_token cannot be verified', function(done) {
+        // mock index.js require to override oauth utils
+        let mw = mockrequire('../index.js', {'./oauth-utils.js': {
+            verifyIDToken: function(idtoken, loginUrl, clientId, keyIdOverride) {
+                return Promise.reject(Error('Expected to reject'))
+            }
+        }})
+        
+        // mock request to token endpoint
+        nock('https://login.salesforce.com')
+            .post('/services/oauth2/token')
+            .reply(200, {
+                'key': 'value',
+                'id_token': 'dummy'
+            })
+
+        let req = {
+            'method': 'GET',
+            'originalUrl': '/oauth/callback',
+            'query': {'code': 'authcode1234'}
+        }
+        let callback = () => {
+            done(Error('Should not call callback'))
+        }
+        mw.oauthCallback({'clientId': 'foo', 'clientSecret': 'bar', 'redirectUri': 'baz', 'callback': callback})(req, undefined, (err) => {
+            expect(err.message).to.be.equal('Expected to reject')
+            done()
+        })
+    })
+
+    it('should throw error if id_token cannot be verified', function(done) {
+        // mock index.js require to override oauth utils
+        let mw = mockrequire('../index.js', {'./oauth-utils.js': {
+            verifyIDToken: function(idtoken, loginUrl, clientId, keyIdOverride) {
+                expect(idtoken).to.be.equal('dummy')
+                expect(loginUrl).to.be.equal('https://foo.example.com')
+                expect(clientId).to.be.equal('someclientid')
+                return Promise.reject(Error('Expected to reject'))
+            }
+        }})
+        
+        // mock request to token endpoint
+        nock('https://foo.example.com')
+            .post('/services/oauth2/token')
+            .reply(200, {
+                'key': 'value',
+                'id_token': 'dummy'
+            })
+
+        let req = {
+            'method': 'GET',
+            'originalUrl': '/oauth/callback',
+            'query': {'code': 'authcode1234'}
+        }
+        let callback = () => {
+            done(Error('Should not call callback'))
+        }
+        mw.oauthCallback({'clientId': 'someclientid', 'clientSecret': 'bar', 'loginUrl': 'https://foo.example.com', 'redirectUri': 'baz', 'callback': callback})(req, undefined, (err) => {
+            expect(err.message).to.be.equal('Expected to reject')
+            done()
+        })
+    })
+
+    it('should throw error if unable to fetch identity', function(done) {
+        // mock index.js require to override oauth utils
+        let mw = mockrequire('../index.js', {'./oauth-utils.js': {
+            fetchIdentity: function(access_token, id) {
+                expect(access_token).to.be.equal('11111')
+                expect(id).to.be.equal('22222')
+                return Promise.reject(Error('Expected to reject'))
+            }
+        }})
+        
+        // mock request to token endpoint
+        nock('https://login.salesforce.com')
+            .post('/services/oauth2/token')
+            .reply(200, {
+                'key': 'value',
+                'id_token': 'dummy',
+                'access_token': '11111',
+                'id': '22222'
+            })
+
+        let req = {
+            'method': 'GET',
+            'originalUrl': '/oauth/callback',
+            'query': {'code': 'authcode1234'}
+        }
+        let callback = () => {
+            done(Error('Should not call callback'))
+        }
+        mw.oauthCallback({'clientId': 'foo', 'clientSecret': 'bar', 'redirectUri': 'baz', 'callback': callback})(req, undefined, (err) => {
+            expect(err.message).to.be.equal('Expected to reject')
+            done()
+        })
+    })
+
+    it('should throw error if unable to get well known config (using custom domain from identity response)', function(done) {
+        // mock index.js require to override oauth utils
+        let mw = mockrequire('../index.js', {'./oauth-utils.js': {
+            verifyIDToken: () => {
+                return Promise.resolve({})
+            },
+            fetchIdentity: (access_token, id) => {
+                return Promise.resolve({
+                    'urls': {
+                        'custom_domain': 'urls.custom_domain'
+                    }
+                })
+            },
+            fetchWellknownConfig: (url) => {
+                expect(url).to.be.equal('urls.custom_domain')
+                return Promise.reject(Error('Expected to reject'))
+            }
+        }})
+        
+        // mock request to token endpoint
+        nock('https://login.salesforce.com')
+            .post('/services/oauth2/token')
+            .reply(200, {
+                'key': 'value',
+                'id_token': 'dummy',
+                'scope': 'foo bar'
+            })
+
+        let req = {
+            'method': 'GET',
+            'originalUrl': '/oauth/callback',
+            'query': {'code': 'authcode1234'}
+        }
+        let callback = () => {
+            done(Error('Should not call callback'))
+        }
+        mw.oauthCallback({'clientId': 'foo', 'clientSecret': 'bar', 'redirectUri': 'baz', 'callback': callback})(req, undefined, (err) => {
+            expect(err.message).to.be.equal('Expected to reject')
+            done()
+        })
+    })
+
+    it('should throw error if unable to get well known config (using instance url if no custom url in identity response)', function(done) {
+        // mock index.js require to override oauth utils
+        let mw = mockrequire('../index.js', {'./oauth-utils.js': {
+            verifyIDToken: () => {
+                return Promise.resolve({})
+            },
+            fetchIdentity: (access_token, id) => {
+                return Promise.resolve({})
+            },
+            fetchWellknownConfig: (url) => {
+                expect(url).to.be.equal('my_instance_url')
+                return Promise.reject(Error('Expected to reject'))
+            }
+        }})
+        
+        // mock request to token endpoint
+        nock('https://login.salesforce.com')
+            .post('/services/oauth2/token')
+            .reply(200, {
+                'key': 'value',
+                'id_token': 'dummy',
+                'scope': 'foo bar',
+                'instance_url': 'my_instance_url'
+            })
+
+        let req = {
+            'method': 'GET',
+            'originalUrl': '/oauth/callback',
+            'query': {'code': 'authcode1234'}
+        }
+        let callback = () => {
+            done(Error('Should not call callback'))
+        }
+        mw.oauthCallback({'clientId': 'foo', 'clientSecret': 'bar', 'redirectUri': 'baz', 'callback': callback})(req, undefined, (err) => {
+            expect(err.message).to.be.equal('Expected to reject')
+            done()
+        })
+    })
+
+    it('should set keys correctly in response object if all okay (default requestKey)', function(done) {
+        // mock index.js require to override oauth utils
+        let mw = mockrequire('../index.js', {'./oauth-utils.js': {
+            verifyIDToken: () => {
+                return Promise.resolve({'foo': 'foo'})
+            },
+            fetchIdentity: (access_token, id) => {
+                return Promise.resolve({'bar': 'bar'})
+            },
+            fetchWellknownConfig: (url) => {
+                return Promise.resolve({'baz': 'baz'})
+            }
+        }})
+        
+        // mock request to token endpoint
+        nock('https://login.salesforce.com')
+            .post('/services/oauth2/token')
+            .reply(200, {
+                'key': 'value',
+                'id_token': 'dummy',
+                'scope': 'foo bar',
+                'instance_url': 'my_instance_url'
+            })
+
+        let req = {
+            'method': 'GET',
+            'originalUrl': '/oauth/callback',
+            'query': {'code': 'authcode1234'}
+        }
+        let callback = () => {
+            expect(req.sfoauth.scopes).to.deep.equal(['foo', 'bar'])
+            expect(req.sfoauth.verifiedIdToken.foo).to.equal('foo')
+            expect(req.sfoauth.identity.bar).to.equal('bar')
+            expect(req.sfoauth.wellknown_config.baz).to.equal('baz')
+            done()
+        }
+        mw.oauthCallback({'clientId': 'foo', 'clientSecret': 'bar', 'redirectUri': 'baz', 'callback': callback})(req, undefined, (err) => {
+            done(err)
+        })
+    })
+
+    it('should set keys correctly in response object if all okay (supplied requestKey)', function(done) {
+        // mock index.js require to override oauth utils
+        let mw = mockrequire('../index.js', {'./oauth-utils.js': {
+            verifyIDToken: () => {
+                return Promise.resolve({'foo': 'foo'})
+            },
+            fetchIdentity: (access_token, id) => {
+                return Promise.resolve({'bar': 'bar'})
+            },
+            fetchWellknownConfig: (url) => {
+                return Promise.resolve({'baz': 'baz'})
+            }
+        }})
+        
+        // mock request to token endpoint
+        nock('https://login.salesforce.com')
+            .post('/services/oauth2/token')
+            .reply(200, {
+                'key': 'value',
+                'id_token': 'dummy',
+                'scope': 'foo bar',
+                'instance_url': 'my_instance_url'
+            })
+
+        let req = {
+            'method': 'GET',
+            'originalUrl': '/oauth/callback',
+            'query': {'code': 'authcode1234'}
+        }
+        let callback = () => {
+            expect(req.example.scopes).to.deep.equal(['foo', 'bar'])
+            expect(req.example.verifiedIdToken.foo).to.equal('foo')
+            expect(req.example.identity.bar).to.equal('bar')
+            expect(req.example.wellknown_config.baz).to.equal('baz')
+            done()
+        }
+        mw.oauthCallback({'clientId': 'foo', 'clientSecret': 'bar', 'redirectUri': 'baz', 'requestKey': 'example', 'callback': callback})(req, undefined, (err) => {
             done(err)
         })
     })

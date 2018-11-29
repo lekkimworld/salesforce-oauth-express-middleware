@@ -60,6 +60,7 @@ module.exports = {
         if (!options.path) options.path = '/oauth/callback'
         if (!options.requestKey) options.requestKey = 'sfoauth'
         if (!options.callback || typeof options.callback !== 'function') options.callback = () => {}
+        if (!options.hasOwnProperty("verifyIDToken")) options.verifyIDToken = true
 
         return (req, res, next) => {
             // state
@@ -102,7 +103,10 @@ module.exports = {
                 const idtoken = payload.id_token
 
                 // we need to verify the token before trusting it
-                return Promise.all([oauthutils.verifyIDToken(idtoken, options.loginUrl, options.clientId, options.keyIdOverride), oauthutils.fetchIdentity(payload.access_token, payload.id)])
+                return Promise.all([
+                    oauthutils.verifyIDToken(idtoken, options.loginUrl, options.clientId, options.keyIdOverride), 
+                    oauthutils.fetchIdentity(payload.access_token, payload.id)
+                ])
 
             }).then(data => {
                 // abort if done
@@ -111,14 +115,15 @@ module.exports = {
                 // get data
                 const verifyResult = data[0]
                 const identity = data[1]
+                const payload = req[options.requestKey].payload
 
                 // grab verify result and identity and store
                 req[options.requestKey].verifiedIdToken = verifyResult
                 req[options.requestKey].identity = identity
-                req[options.requestKey].scopes = req[options.requestKey].payload.scope.split(' ')
+                req[options.requestKey].scopes = payload.scope.split(' ')
                 
                 // get well known config
-                return fetchWellknownConfig(identity.urls.custom_domain || payload.instance_url)
+                return oauthutils.fetchWellknownConfig(identity.urls && identity.urls.custom_domain ? identity.urls.custom_domain : payload.instance_url)
 
             }).then(config => {
                 // abort if done
