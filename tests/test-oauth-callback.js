@@ -43,7 +43,7 @@ describe('test oauth callback', function() {
         let fake = sinon.fake()
         let req = {
             'method': 'GET',
-            'originalUrl': '/foo'
+            'path': '/foo'
         }
         mw.oauthCallback({'clientId': 'foo', 'clientSecret': 'bar', 'redirectUri': 'baz'})(req, undefined, fake)
         expect(fake.calledOnce).to.be.true
@@ -52,7 +52,7 @@ describe('test oauth callback', function() {
         let fake = sinon.fake()
         let req = {
             'method': 'GET',
-            'originalUrl': '/oauth/callback'
+            'path': '/oauth/callback'
         }
         mw.oauthCallback({'clientId': 'foo', 'clientSecret': 'bar', 'redirectUri': 'baz', 'path': '/callback'})(req, undefined, fake)
         expect(fake.calledOnce).to.be.true
@@ -61,7 +61,7 @@ describe('test oauth callback', function() {
         let fake = sinon.fake()
         let req = {
             'method': 'GET',
-            'originalUrl': '/oauth/callback',
+            'path': '/oauth/callback',
             'query': {}
         }
         mw.oauthCallback({'clientId': 'foo', 'clientSecret': 'bar', 'redirectUri': 'baz'})(req, undefined, fake)
@@ -76,7 +76,7 @@ describe('test oauth callback', function() {
         let fake = sinon.spy()
         let req = {
             'method': 'GET',
-            'originalUrl': '/oauth/callback',
+            'path': '/oauth/callback',
             'query': {'code': 'authcode1234'}
         }
         mw.oauthCallback({'clientId': 'foo', 'clientSecret': 'bar', 'redirectUri': 'baz'})(req, undefined, err => {
@@ -97,7 +97,7 @@ describe('test oauth callback', function() {
 
         let req = {
             'method': 'GET',
-            'originalUrl': '/oauth/callback',
+            'path': '/oauth/callback',
             'query': {'code': 'authcode1234'}
         }
         let callback = () => {
@@ -120,7 +120,7 @@ describe('test oauth callback', function() {
 
         let req = {
             'method': 'GET',
-            'originalUrl': '/oauth/callback',
+            'path': '/oauth/callback',
             'query': {'code': 'authcode1234'}
         }
         let callback = () => {
@@ -145,7 +145,7 @@ describe('test oauth callback', function() {
 
         let req = {
             'method': 'GET',
-            'originalUrl': '/oauth/callback',
+            'path': '/oauth/callback',
             'query': {'code': 'authcode1234'}
         }
         let callback = () => {
@@ -176,7 +176,7 @@ describe('test oauth callback', function() {
 
         let req = {
             'method': 'GET',
-            'originalUrl': '/oauth/callback',
+            'path': '/oauth/callback',
             'query': {'code': 'authcode1234'}
         }
         let callback = () => {
@@ -209,7 +209,7 @@ describe('test oauth callback', function() {
 
         let req = {
             'method': 'GET',
-            'originalUrl': '/oauth/callback',
+            'path': '/oauth/callback',
             'query': {'code': 'authcode1234'}
         }
         let callback = () => {
@@ -243,7 +243,7 @@ describe('test oauth callback', function() {
 
         let req = {
             'method': 'GET',
-            'originalUrl': '/oauth/callback',
+            'path': '/oauth/callback',
             'query': {'code': 'authcode1234'}
         }
         let callback = () => {
@@ -285,7 +285,7 @@ describe('test oauth callback', function() {
 
         let req = {
             'method': 'GET',
-            'originalUrl': '/oauth/callback',
+            'path': '/oauth/callback',
             'query': {'code': 'authcode1234'}
         }
         let callback = () => {
@@ -324,7 +324,7 @@ describe('test oauth callback', function() {
 
         let req = {
             'method': 'GET',
-            'originalUrl': '/oauth/callback',
+            'path': '/oauth/callback',
             'query': {'code': 'authcode1234'}
         }
         let callback = () => {
@@ -362,7 +362,7 @@ describe('test oauth callback', function() {
 
         let req = {
             'method': 'GET',
-            'originalUrl': '/oauth/callback',
+            'path': '/oauth/callback',
             'query': {'code': 'authcode1234'}
         }
         let callback = () => {
@@ -403,7 +403,7 @@ describe('test oauth callback', function() {
 
         let req = {
             'method': 'GET',
-            'originalUrl': '/oauth/callback',
+            'path': '/oauth/callback',
             'query': {'code': 'authcode1234'}
         }
         let callback = () => {

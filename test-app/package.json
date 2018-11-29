@@ -1,0 +1,15 @@
+{
+  "name": "test-app",
+  "version": "0.0.1",
+  "description": "Test app",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "author": "Mikkel Flindt Heisterberg (mheisterberg@salesforce.com)",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.16.4",
+    "express-session": "^1.15.6"
+  }
+}

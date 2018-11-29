@@ -4,7 +4,8 @@
   "description": "Express middleware to handle OAuth dance initiation, callback, OpenID Connect id_token verification and Canvas signed_request verification",
   "main": "index.js",
   "scripts": {
-    "test": "npx mocha tests/**/*.js --no-timeouts"
+    "test": "npx mocha tests/**/*.js --no-timeouts",
+    "postinstall": "npm install --prefix test-app"
   },
   "repository": {
     "type": "git",

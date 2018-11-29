@@ -7,7 +7,7 @@ module.exports = {
      * coerces to false. Otherwise just forwards the call along the chain. See below for 
      * options:
      * 
-     * - callback - function - if returns a value that coerces to false we initiate the OAuth dance
+     * - callback - function - if returns a value that coerces to false we initiate the OAuth dance (argument is the request object)
      * - clientId - String - client ID for OAuth initiation - required
      * - redirectUri - String - redirection URI as configured in Salesforce - required
      * - loginUrl - String - Salesforce login URL - defaults to https://login.salesforce.com
@@ -42,7 +42,7 @@ module.exports = {
      * - clientId - String - client ID for OAuth initiation - required
      * - clientSecret - String - client secret for OAuth initiation - required
      * - redirectUri - String - redirection URI as configured in Salesforce - required
-     * - callback - Function - called when the 
+     * - callback - Function - called when the callback has successfully verified the OAuth callback (arguments: req, res)
      * - path - String - the path the OAuth callback should run under (defaults to /oauth/callback)
      * - loginUrl - String - Salesforce login URL (defaults to https://login.salesforce.com)
      * - requestKey - String - request key to store resulting data in (defaults to 'sfoauth')
@@ -67,7 +67,7 @@ module.exports = {
             let didCallback = false
 
             // route for oauth callback
-            if (req.method !== 'GET' || req.originalUrl !== options.path) {
+            if (req.method !== 'GET' || req.path !== options.path) {
                 return next()
             }
 
@@ -96,7 +96,7 @@ module.exports = {
                 // exit here if no id_token in the payload or if we should not verify it
                 if (!payload.id_token || !options.verifyIDToken) {
                     didCallback = true
-                    return options.callback()
+                    return options.callback(req, res)
                 }
 
                 // get idtoken out of payload 
@@ -134,7 +134,7 @@ module.exports = {
 
                 // redirect
                 didCallback = true
-                return options.callback()
+                return options.callback(req, res)
 
             }).catch(err => {
                 // coming here means that we could not verify the ID token
