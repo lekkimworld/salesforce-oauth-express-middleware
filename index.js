@@ -154,24 +154,27 @@ module.exports = {
      * @param {Object} opts 
      */
     canvasApplicationSignedRequestAuthentication: opts => {
-        if (!opts || typeof opts !== 'object') throw new Error('Missing options or options is not an object')
         const options = opts || {}
         if (!options.clientSecret) throw new Error('Missing clientSecret for signed_request verification')
-        if (!options.canvasPath) options.canvasPath = '/canvas'
+        if (!options.path) options.path = '/canvas'
         if (!options.algorithm) options.algorithm = 'sha256'
         if (!options.callback || typeof options.callback === 'function') options.callback = () => {}
 
         return (req, res, next) => {
             // see if post and path matched
-            if (req.method === 'POST' && req.originalUrl === CANVAS_PATH) {
-                // body coming as text as eval due to stange json from SF
-                let payload
-                try {
-                    payload = eval(req.body)
-                } catch (err) {
-                    return next(new Error('Unable to parse signed_request JSON', err))
-                }
-                
+            if (req.method !== 'POST' || req.originalUrl !== options.path) {
+                return next()
+            }
+
+            // body coming as text as eval due to stange json from SF
+            let payload
+            try {
+                payload = eval(req.body)
+            } catch (err) {
+                return next(new Error('Unable to parse signed_request JSON', err))
+            }
+            
+            try {
                 // verify signature
                 let obj = oauthutils.verifySignedRequest(payload, options.clientSecret)
 
@@ -180,6 +183,9 @@ module.exports = {
 
                 // next middleware
                 return next()
+                
+            } catch (err) {
+                next(err)
             }
         }
     }
