@@ -1,1 +1,1 @@
-web: npm start --prefix test-app
+web: npm start --prefix oauth-test-app
