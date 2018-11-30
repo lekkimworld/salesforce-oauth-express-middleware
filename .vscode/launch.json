@@ -20,6 +20,20 @@
             "cwd": "${workspaceRoot}",
             "runtimeExecutable": null,
             "env": { "NODE_ENV": "testing"}
+        },
+        {
+            "name": "Run oauth-test-app",
+            "type": "node",
+            "request": "launch",
+            "program": "${workspaceRoot}/oauth-test-app/index.js",
+            "stopOnEntry": false,
+            "runtimeExecutable": null,
+            "env": {
+                "NODE_ENV": "testing",
+                "OAUTH_CLIENT_ID": "3MVG9fTLmJ60pJ5KS3EXllTxHn4OPPrx8naa.IMS95SPazrEVkFghqrR0SsxDPOWdVEZ7tTSnsD.DjBfS4uWi",
+                "OAUTH_CLIENT_SECRET": "1220657734169090584",
+                "OAUTH_REDIRECT_URI": "http://localhost:3000/oauth/callback"
+            }
         }
     ]
 }
