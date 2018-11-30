@@ -1,7 +1,7 @@
 {
-  "name": "oauth-test-app",
+  "name": "canvas-test-app",
   "version": "0.0.1",
-  "description": "Salesforce OAuth Test app",
+  "description": "Salesforce Canvas Test Spp",
   "main": "index.js",
   "scripts": {
     "start": "node index.js"
@@ -9,6 +9,7 @@
   "author": "Mikkel Flindt Heisterberg (mheisterberg@salesforce.com)",
   "license": "MIT",
   "dependencies": {
+    "body-parser": "^1.18.3",
     "express": "^4.16.4",
     "express-session": "^1.15.6"
   }

@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "test": "npx mocha tests/**/*.js --no-timeouts",
-    "postinstall": "npm install --prefix test-app"
+    "postinstall": "npm install --prefix canvas-test-app"
   },
   "repository": {
     "type": "git",

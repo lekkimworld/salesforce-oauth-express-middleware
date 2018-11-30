@@ -34,6 +34,18 @@
                 "OAUTH_CLIENT_SECRET": "1220657734169090584",
                 "OAUTH_REDIRECT_URI": "http://localhost:3000/oauth/callback"
             }
+        },
+        {
+            "name": "Run canvas-test-app",
+            "type": "node",
+            "request": "launch",
+            "program": "${workspaceRoot}/canvas-test-app/index.js",
+            "stopOnEntry": false,
+            "runtimeExecutable": null,
+            "env": {
+                "NODE_ENV": "testing",
+                "CANVAS_CLIENT_SECRET": "8298982876643636524"
+            }
         }
     ]
 }

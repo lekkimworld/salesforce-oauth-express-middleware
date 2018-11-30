@@ -149,7 +149,7 @@ module.exports = {
      * 
      * - clientSecret - String - the client secret to use when verifying the signed_request - required
      * - canvasPath - String - path to intercept for Canvas authentication (defaults to '/canvas')
-     * - callback - Function - called when the signed_request has been verified
+     * - callback - Function - called when the signed_request has been verified (arguments: request, response, verifiedSignedRequest)
      * 
      * @param {Object} opts 
      */
@@ -158,21 +158,29 @@ module.exports = {
         if (!options.clientSecret) throw new Error('Missing clientSecret for signed_request verification')
         if (!options.path) options.path = '/canvas'
         if (!options.algorithm) options.algorithm = 'sha256'
-        if (!options.callback || typeof options.callback === 'function') options.callback = () => {}
+        if (!options.callback || typeof options.callback !== 'function') options.callback = () => {}
 
         return (req, res, next) => {
             // see if post and path matched
-            if (req.method !== 'POST' || req.originalUrl !== options.path) {
+            if (req.method !== 'POST' || req.path !== options.path) {
                 return next()
             }
 
             // body coming as text as eval due to stange json from SF
+            let body = req.body.toString()
             let payload
-            try {
-                payload = eval(req.body)
-            } catch (err) {
-                return next(new Error('Unable to parse signed_request JSON', err))
+            if (body.indexOf('signed_request=') === 0) {
+                payload = decodeURIComponent(body.substring(15))
+            } else {
+                try {
+                    let idx1 = body.indexOf("'")
+                    let idx2 = body.lastIndexOf("'")
+                    payload = body.substring(idx1+1, idx2)
+                } catch (err) {
+                    return next(new Error('Unable to parse signed_request JSON', err))
+                }
             }
+            if (!payload || typeof payload !== 'string' || payload.indexOf('.') < 0 || payload.split('.').length !== 2) return next(Error('Expected a string as the body payload with a period to separate two strings'))
             
             try {
                 // verify signature
