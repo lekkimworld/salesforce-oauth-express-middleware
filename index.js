@@ -45,7 +45,7 @@ module.exports = {
      * - callback - Function - called when the callback has successfully verified the OAuth callback (arguments: req, res)
      * - path - String - the path the OAuth callback should run under (defaults to /oauth/callback)
      * - loginUrl - String - Salesforce login URL (defaults to https://login.salesforce.com)
-     * - requestKey - String - request key to store resulting data in (defaults to 'sfoauth')
+     * - requestKey - String - response locals (res.locals) key to store resulting data in (defaults to 'sfoauth')
      * - verifyIdToken - Boolean - should we verify the signature of the received OpenID Connect id_token if any (defaults to true)
      * 
      * @param {Object} opts Options to configure the method
@@ -89,7 +89,7 @@ module.exports = {
                 return response.json()
             }).then(payload => {
                 // add the payload to the request
-                req[options.requestKey] = {
+                res.locals[options.requestKey] = {
                     'payload': payload
                 }
 
@@ -104,7 +104,7 @@ module.exports = {
 
                 // we need to verify the token before trusting it
                 return Promise.all([
-                    oauthutils.verifyIDToken(idtoken, options.loginUrl, options.clientId, options.keyIdOverride), 
+                    oauthutils.verifyIDToken(idtoken, options.loginUrl, options.clientId, options.keyIdOverride),
                     oauthutils.fetchIdentity(payload.access_token, payload.id)
                 ])
 
@@ -115,13 +115,13 @@ module.exports = {
                 // get data
                 const verifyResult = data[0]
                 const identity = data[1]
-                const payload = req[options.requestKey].payload
+                const payload = res.locals[options.requestKey].payload
 
                 // grab verify result and identity and store
-                req[options.requestKey].verifiedIdToken = verifyResult
-                req[options.requestKey].identity = identity
-                req[options.requestKey].scopes = payload.scope.split(' ')
-                
+                res.locals[options.requestKey].verifiedIdToken = verifyResult
+                res.locals[options.requestKey].identity = identity
+                res.locals[options.requestKey].scopes = payload.scope.split(' ')
+
                 // get well known config
                 return oauthutils.fetchWellknownConfig(identity.urls && identity.urls.custom_domain ? identity.urls.custom_domain : payload.instance_url)
 
@@ -130,7 +130,7 @@ module.exports = {
                 if (didCallback) return
 
                 // store
-                req[options.requestKey].wellknown_config = config
+                res.locals[options.requestKey].wellknown_config = config
 
                 // redirect
                 didCallback = true
@@ -175,13 +175,13 @@ module.exports = {
                 try {
                     let idx1 = body.indexOf("'")
                     let idx2 = body.lastIndexOf("'")
-                    payload = body.substring(idx1+1, idx2)
+                    payload = body.substring(idx1 + 1, idx2)
                 } catch (err) {
                     return next(new Error('Unable to parse signed_request JSON', err))
                 }
             }
             if (!payload || typeof payload !== 'string' || payload.indexOf('.') < 0 || payload.split('.').length !== 2) return next(Error('Expected a string as the body payload with a period to separate two strings'))
-            
+
             try {
                 // verify signature
                 let obj = oauthutils.verifySignedRequest(payload, options.clientSecret)
@@ -191,7 +191,7 @@ module.exports = {
 
                 // next middleware
                 return next()
-                
+
             } catch (err) {
                 next(err)
             }
