@@ -1,6 +1,6 @@
 {
     "name": "salesforce-oauth-express-middleware",
-    "version": "1.0.1",
+    "version": "1.0.2",
     "description": "Express middleware to handle OAuth dance initiation, callback, OpenID Connect id_token verification and Canvas signed_request verification",
     "main": "index.js",
     "scripts": {

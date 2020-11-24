@@ -187,10 +187,14 @@ module.exports = {
                 let obj = oauthutils.verifySignedRequest(payload, options.clientSecret)
 
                 // callback
-                options.callback(req, res, obj)
+                try {
+                    const rc = options.callback(req, res, obj)
+                    if (rc) next();
+                    return;
 
-                // next middleware
-                return next()
+                } catch (err) {
+                    next(err);
+                }
 
             } catch (err) {
                 next(err)
